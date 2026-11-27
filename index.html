@@ -2017,10 +2017,12 @@
           setLiveUI("listening", "🎙️ Đang lắng nghe bạn...");
         }
       };
-
+let liveRequestId = 0;
       liveRecognition.onresult = async (event) => {
         // Bỏ qua âm thanh thu được khi AI đang suy nghĩ hoặc đang đọc câu trả lời
-        if (!isLiveActive || isLiveAiBusy) return;
+       if (!isLiveActive) return;
+window.speechSynthesis.cancel();
+document.querySelectorAll("audio").forEach(a => { a.pause(); a.currentTime = 0; });
 
         let interim = "";
         let finalText = "";
@@ -2045,9 +2047,10 @@
             ? "⏳ AI đang tra cứu VietJack & suy nghĩ..."
             : "🧠 Đăng OpenChat đang suy nghĩ..."
         );
+        const currentReqId = ++liveRequestId;
 
         const reply = await sendMessageFlow(query, true);
-        if (!isLiveActive) {
+        if (!isLiveActive || currentReqId !== liveRequestId) {
           isLiveAiBusy = false;
           return;
         }
@@ -2056,7 +2059,7 @@
         setLiveUI("speaking", "🔊 Đang trả lời bằng giọng nói của bạn...");
         speakWithClonedVoice(reply, () => {
           isLiveAiBusy = false;
-          if (isLiveActive) {
+          if (isLiveActive && currentReqId === liveRequestId) {
             setLiveUI("listening", "🎙️ AI đã nói xong — Mời bạn nói tiếp...");
           }
         });
@@ -2409,6 +2412,7 @@
 
     async function callOpenRouter(model, systemPrompt, userContentParts, enableWebSearch = false) {
       const apiKey = getActiveOpenRouterKey();
+      systemPrompt += "\nNếu đang ở chế độ Live: Trả lời ngắn gọn trong 2 câu. Cấm ghi đường link http/https, chỉ nêu tên 1 trang web chính ở cuối câu.";
       const safeReferer = getSafeReferer();
       const hasOnlineSuffix = String(model).endsWith(":online");
 
@@ -2422,7 +2426,7 @@
           temperature: 0.3,max_tokens: 4096
         };
         if (withWebPlugin && !hasOnlineSuffix) {
-          body.plugins = [{ id: "web", max_results: 4, search_prompt: "Ưu tiên tìm kết quả từ site:vietjack.com cho câu hỏi học tập nếu phù hợp." }];
+          body.plugins = [{ id: "web", max_results: 1, search_prompt: "Ưu tiên tìm kết quả từ site:vietjack.com cho câu hỏi học tập nếu phù hợp." }];
         }
         const response = await fetch(OPENROUTER_URL, {
           method: "POST",
