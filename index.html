@@ -2419,7 +2419,7 @@
             { role: "system", content: systemPrompt },
             { role: "user", content: userContentParts }
           ],
-          temperature: 0.3
+          temperature: 0.3,max_tokens: 4096
         };
         if (withWebPlugin && !hasOnlineSuffix) {
           body.plugins = [{ id: "web", max_results: 4, search_prompt: "Ưu tiên tìm kết quả từ site:vietjack.com cho câu hỏi học tập nếu phù hợp." }];
