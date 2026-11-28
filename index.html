@@ -1387,7 +1387,10 @@
     <div class="live-transcript-box" id="live-transcript">
       Hãy nói câu hỏi hoặc bài tập của bạn bằng tiếng Việt...
     </div>
-
+<video id="live-vision-video" autoplay playsinline muted style="display:none; width:180px; max-height:110px; border-radius:12px; border:2px solid #22c55e; margin-bottom:10px; object-fit:cover;"></video>
+<div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:8px;">
+  <button id="btn-live-vision" type="button" style="background:#1e293b; color:#38bdf8; border:1px solid #38bdf8; padding:10px 16px; border-radius:999px; font-weight:600; cursor:pointer;">📺 Chia sẻ màn hình / Camera</button>
+</div>
     <button id="btn-end-live" class="btn-end-live">Kết thúc Chat Live</button>
   </div>
 
@@ -1737,11 +1740,8 @@
     });
 
     document.getElementById("btn-capture").addEventListener("click", async () => {
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isMobile || !navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        mobileCamPicker.click();
-        return;
-      }
+     mobileCamPicker.click();
+      return;
 
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -2009,7 +2009,8 @@
       if (liveRecognition || !SpeechRecognition) return;
       liveRecognition = new SpeechRecognition();
       liveRecognition.lang = "vi-VN";
-      liveRecognition.continuous = true;
+      const isMobileLive = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+liveRecognition.continuous = !isMobileLive;
       liveRecognition.interimResults = true;
 
       liveRecognition.onstart = () => {
@@ -2017,12 +2018,10 @@
           setLiveUI("listening", "🎙️ Đang lắng nghe bạn...");
         }
       };
-let liveRequestId = 0;
+let currentAiSpeech = "";
       liveRecognition.onresult = async (event) => {
         // Bỏ qua âm thanh thu được khi AI đang suy nghĩ hoặc đang đọc câu trả lời
        if (!isLiveActive) return;
-window.speechSynthesis.cancel();
-document.querySelectorAll("audio").forEach(a => { a.pause(); a.currentTime = 0; });
 
         let interim = "";
         let finalText = "";
@@ -2038,7 +2037,12 @@ document.querySelectorAll("audio").forEach(a => { a.pause(); a.currentTime = 0; 
 
         const query = finalText.trim();
         if (!query) return;
-
+const normQuery = query.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "").trim();
+if (currentAiSpeech && normQuery.length > 2 && currentAiSpeech.includes(normQuery)) {
+  return;
+}
+window.speechSynthesis.cancel();
+document.querySelectorAll("audio").forEach(a => { a.pause(); a.currentTime = 0; });
         isLiveAiBusy = true;
         liveTranscript.textContent = "Bạn: " + query;
         setLiveUI(
@@ -2058,6 +2062,7 @@ document.querySelectorAll("audio").forEach(a => { a.pause(); a.currentTime = 0; 
         liveTranscript.textContent = cleanTextForSpeech(reply);
         setLiveUI("speaking", "🔊 Đang trả lời bằng giọng nói của bạn...");
         speakWithClonedVoice(reply, () => {
+          currentAiSpeech = cleanTextForSpeech(reply).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "");
           isLiveAiBusy = false;
           if (isLiveActive && currentReqId === liveRequestId) {
             setLiveUI("listening", "🎙️ AI đã nói xong — Mời bạn nói tiếp...");
@@ -2073,7 +2078,11 @@ document.querySelectorAll("audio").forEach(a => { a.pause(); a.currentTime = 0; 
       };
 
       // Nếu trình duyệt tự ngắt sau lúc im lặng dài, tự nối lại ngầm mà KHÔNG xin lại quyền Micro
-      liveRecognition.onend = () => {
+     liveRecognition.onend = () => {
+  if (isLiveActive) {
+    try { liveRecognition.start(); } catch (e) {}
+  }
+};
         if (isLiveActive) {
           setTimeout(() => {
             if (isLiveActive) {
