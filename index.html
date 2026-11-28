@@ -2677,7 +2677,7 @@ document.querySelectorAll("audio").forEach(a => { a.pause(); a.currentTime = 0; 
             { role: "system", content: systemPrompt },
             { role: "user", content: userContentParts }
           ],
-          temperature: 0.3,max_tokens: 500
+          temperature: 0.3,max_tokens: 299
         };
         if (withWebPlugin && !hasOnlineSuffix) {
           body.plugins = [{ id: "web", max_results: 1, search_prompt: "Ưu tiên tìm kết quả từ site:vietjack.com cho câu hỏi học tập nếu phù hợp." }];
