@@ -2083,14 +2083,6 @@ document.querySelectorAll("audio").forEach(a => { a.pause(); a.currentTime = 0; 
     try { liveRecognition.start(); } catch (e) {}
   }
 };
-        if (isLiveActive) {
-          setTimeout(() => {
-            if (isLiveActive) {
-              try { liveRecognition.start(); } catch (e) {}
-            }
-          }, 200);
-        }
-      };
     }
 
     async function startLiveChat() {
